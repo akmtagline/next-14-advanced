@@ -1,3 +1,4 @@
+import { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 
 export const authConfig = {
@@ -7,12 +8,20 @@ export const authConfig = {
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
-      const isOnDashboard = nextUrl.pathname.startsWith("/dashboard");
-      if (isOnDashboard) {
+      const privatePages = ["/dashboard", "/profile"];
+      const isPrivatePage = privatePages.some((page) =>
+        nextUrl.pathname.startsWith(page)
+      );
+      if (isPrivatePage) {
         if (isLoggedIn) return true;
         return false; // Redirect unauthenticated users to login page
       } else if (isLoggedIn) {
-        return Response.redirect(new URL("/dashboard", nextUrl));
+        const authPages = ["/login"];
+        const isAuthPage = authPages.some((page) =>
+          nextUrl.pathname.startsWith(page)
+        );
+        if (isAuthPage)
+          return Response.redirect(new URL("/dashboard", nextUrl));
       }
       return true;
     },
@@ -24,8 +33,11 @@ export const authConfig = {
 
         if (credentials) {
           const { email, password } = credentials;
-          if (email === "abc@gmail.com" && password === "Abc@123")
+          if (email === "abc@gmail.com" && password === "Abc@123") {
             return { id: 123, email, password };
+          }
+
+          throw new CredentialsSignin();
         }
 
         return null;
